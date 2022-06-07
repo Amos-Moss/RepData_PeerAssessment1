@@ -1,0 +1,172 @@
+---
+title: "Project1"
+author: "ME"
+date: "07/06/2022"
+output: html_document
+---
+
+I begin by loading the project-related dataset and examining the first rows
+
+```{r, setting the work directory and loading data, echo=TRUE}
+
+wd <- "C:/Users/Amos.Turin/OneDrive - Essex County Council/Documents/Learning/R/Reproducible Project 1"
+setwd(wd)
+
+df <- read.csv("activity.csv")
+
+head(df)
+```
+
+## What is mean total number of steps taken per day?
+
+Calculating the total number of steps taken per day
+
+```{r, echo=TRUE}
+
+df$date <- as.Date(as.character(df$date), "%Y-%m-%d")
+daily_steps <- aggregate(df["steps"], by=df["date"], sum)
+head(daily_steps)
+
+```
+
+Plot the histogram of daily total steps
+
+```{r, histogram, echo=TRUE}
+
+par(mar=c(4,6,4,6))
+hist(daily_steps$steps, breaks=20,
+     xlab="Total number of steps",
+     main="Histogram of total steps per day")
+
+```
+Finally, I calculate the mean and median values of total daily steps
+
+```{r, echo=TRUE}
+
+medSteps <- median(daily_steps$steps, na.rm=TRUE)
+meanSteps <- mean(daily_steps$steps, na.rm=TRUE)
+
+print(paste("Median: ", medSteps))
+print(paste("Mean: ", round(meanSteps,2)))
+```
+
+## What is the average daily activity pattern?
+
+I calculate the average number of steps for each 5-minute interval over all dates
+in the dataset. Then I plot the timeseries of intervals.
+
+```{r, aggregate and plot the timeseries, echo=TRUE}
+
+df1 <- df[-which(is.na(df$steps)),]
+interval_means <- aggregate(df1["steps"], by=df1["interval"], mean)
+
+plot(interval_means$interval, interval_means$steps, 
+     type='l', 
+     xlab = "5-minute Intervals",
+     ylab = "Average number of steps per interval",
+     main = "Average number of steps per 5-minute interval")
+
+```
+
+From the plot it appears that the highest average number of steps in a 5-minute 
+interval is in one of the intervals between 800-900 minutes.
+
+Let's confirm what the maximum is and its relevant interval
+
+```{r, echo=TRUE}
+
+interval_means[which.max(interval_means$steps),]
+
+```
+
+The highest number of average steps is in the 835 interval at 206.2 steps.
+
+## Imputing missing values
+
+Calculating the total number of rows with NAs
+
+```{r, echo=TRUE}
+print(paste("Total number of rows with NAs:", sum(is.na(df))))
+```
+I can confirm this result by looking calling summary() on my dataframe.
+
+This is indeed the number of rows with NAs, all of which are in the steps column.
+
+```{r, echo=TRUE}
+summary(df)
+```
+
+Imputing NAs with the mean of their relevant 5-minute interval
+
+```{r, histogram of data after mean imputation, echo=TRUE}
+options(warn=-1)
+library(dplyr)
+
+new_df <- df %>%
+      group_by(interval) %>%
+      mutate_at("steps", function(x) replace(x, is.na(x), mean(x, na.rm=TRUE)))
+      
+new_daily_steps <- aggregate(new_df["steps"], by=new_df["date"], sum)
+
+hist(new_daily_steps$steps,
+     breaks=20,
+     xlab = "Total number of steps",
+     main = "Histogram of total number of daily steps")
+
+```
+
+What has happened to the Mean and Median number of total daily steps as a 
+result of the missing value imputation?
+
+As I have imputed using the mean values, the overall mean has not changed, and
+the median is now equal to the mean.
+
+```{r, echo=TRUE}
+newMedSteps <- median(new_daily_steps$steps, na.rm=TRUE)
+newMeanSteps <- mean(new_daily_steps$steps, na.rm=TRUE)
+
+print(paste("Median: ", round(newMedSteps,2)))
+print(paste("Mean: ", round(newMeanSteps,2)))
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+```{r, echo=TRUE}
+options(warn=-1)
+library(lubridate)
+new_df <- new_df %>%
+      mutate(weekday = wday(date, label=TRUE)) %>%
+      mutate(weekday = ifelse(weekday == "Sun" | weekday == "Sat","Weekend","Weekday"))
+      
+new_df$weekday <- as.factor(new_df$weekday)
+```
+
+Plot the average steps per interval by Weekend vs Weekday
+
+```{r, plot the histogram of weekend vs weekday, fig.width=10, fig.height=4, echo=TRUE}
+
+wkdy <- subset(new_df, weekday == "Weekday")
+wknd <- subset(new_df, weekday == "Weekend")
+weekend_interval_means <- aggregate(wknd["steps"], by=wknd["interval"], mean)
+weekday_interval_means <- aggregate(wkdy["steps"], by=wkdy["interval"], mean)
+
+par(mfrow = c(2,1))
+plot(weekday_interval_means$interval, weekday_interval_means$steps, 
+     type='l', 
+     ylab = "",
+     xlab = "",
+     ylim = c(0,250),
+     main = "Average number of steps per 5-minute interval by Weekday / Weekend")
+grid(NULL, NULL)
+plot(weekend_interval_means$interval, weekend_interval_means$steps, 
+     type='l', 
+     ylab = "",
+     ylim = c(0,250),
+     xlab = "5-minute Intervals")
+grid(NULL, NULL)
+
+```
+
+
+
+
