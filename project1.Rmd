@@ -143,7 +143,7 @@ new_df$weekday <- as.factor(new_df$weekday)
 
 Plot the average steps per interval by Weekend vs Weekday
 
-```{r, plot the histogram of weekend vs weekday, fig.width=10, fig.height=4, echo=TRUE}
+```{r, plot the histogram of weekend vs weekday, fig.width=10, echo=TRUE}
 
 wkdy <- subset(new_df, weekday == "Weekday")
 wknd <- subset(new_df, weekday == "Weekend")
